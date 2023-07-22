@@ -1,13 +1,10 @@
 #include "mazeview.h"
 
-//#include <time.h>
-
 #include <QGraphicsItemGroup>
 #include <QPainter>
 #include <QQueue>
 #include <QWheelEvent>
 #include <QMessageBox>
-//#include <QDebug>
 
 
 #define MIN_ZOOM_FACTOR     0.1
@@ -19,7 +16,7 @@
 
 SearhPathThread::SearhPathThread(QObject *parent):
     QThread(parent),
-    isRunner(false), mat(nullptr), matWidth(0), matHeight(0), src(-1,-1), dest(-1,-1), mMutex()
+    _isSearching(false), mat(nullptr), matWidth(0), matHeight(0), src(-1,-1), dest(-1,-1), mMutex()
 {}
 
 void SearhPathThread::setMatrix(matrixTable *rMat, int mWidth, int mHeight)
@@ -37,12 +34,24 @@ void SearhPathThread::setPoints(Point rSrc, Point rDest)
     dest = rDest;
 }
 
-void SearhPathThread::stop()
+void SearhPathThread::setIsSearching(bool state)
 {
     QMutexLocker ml(&mMutex);
-    isRunner = false;
-    ml.unlock();
-    while (isRunning());
+    _isSearching = state;
+}
+bool SearhPathThread::isSearching()
+{
+    QMutexLocker ml(&mMutex);
+    return _isSearching;
+}
+
+void SearhPathThread::stop()
+{
+    if (isRunning())
+    {
+        setIsSearching(false);
+        while (isRunning());
+    }
 }
 
 void SearhPathThread::run()
@@ -50,7 +59,7 @@ void SearhPathThread::run()
     if (!(matWidth && src.r >-1 && src.r < matHeight && src.c >-1 && src.c < matWidth)) return;
     if (!mat || (*mat)[src.r][src.c] == 1) return;
 
-    isRunner = true;
+    setIsSearching(true);
 
     int r = src.r;
     int c = src.c;
@@ -77,8 +86,7 @@ void SearhPathThread::run()
     int col[] = { 0, -1, 1, 0 };
 
     // run
-//    clock_t tStart = clock();
-    while (isRunner && !q.empty())
+    while (isSearching() && !q.empty())
     {
         // node - current cell
         Node node = q.front();
@@ -91,13 +99,12 @@ void SearhPathThread::run()
         if (r == dest.r && c == dest.c)
         {
             emit resultReady(node.points);
-//            qDebug() << "find, sec" << (double)(clock() - tStart)/CLOCKS_PER_SEC;
             return;
         }
 
         for (int k = 0; k < 4; k++)
         {
-            if (!isRunner) return;
+            if (!isSearching()) return;
             int nr = r + row[k];
             int nc = c + col[k];
 
@@ -111,7 +118,7 @@ void SearhPathThread::run()
         }
     }
 
-    if (isRunner)
+    if (isSearching())
     {
         // not found
         emit resultReady({});

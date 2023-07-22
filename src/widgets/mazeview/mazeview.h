@@ -23,6 +23,8 @@ struct Point
     int c;
 };
 
+Q_DECLARE_METATYPE(QVector<Point>)
+
 struct Node
 {
     Node(int _r, int _c, QVector<Point> _points)
@@ -31,6 +33,7 @@ struct Node
     int c;
     QVector<Point> points;
 };
+
 
 
 class SearhPathThread: public QThread
@@ -47,11 +50,15 @@ public:
     void setPoints(Point src, Point dest);
     void stop();
 
+private:
+    void setIsSearching(bool state);
+    bool isSearching();
+
 signals:
     void resultReady(QVector<Point> vec);
 
 private:
-    bool isRunner;
+    bool _isSearching;
     matrixTable *mat;
     int matWidth;
     int matHeight;

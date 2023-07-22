@@ -4,7 +4,6 @@
 #include <QDesktopWidget>
 #include <QScreen>
 
-Q_DECLARE_METATYPE(QVector<Point>)
 
 int main(int argc, char *argv[])
 {
